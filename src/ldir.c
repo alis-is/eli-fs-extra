@@ -86,7 +86,11 @@ int eli_mkdir(lua_State *L)
     return push_result(L, _lmkdir(path), NULL);
 }
 
-// rmdir => os.remove alias
+int eli_rmdir(lua_State *L)
+{
+    const char *path = luaL_checkstring(L, 1);
+    return push_result(L, rmdir(path), NULL);
+}
 
 static int isdotfile(const char *name)
 {
@@ -403,7 +407,8 @@ int dir_entry_type(lua_State *L)
     struct dir_entry_data *ded = (struct dir_entry_data *)luaL_checkudata(L, 1, DIR_ENTRY_METATABLE);
     char *path = joinpath(ded->folder, ded->entry->d_name);
 #endif
-    if (!path) {
+    if (!path)
+    {
         push_error(L, "Out of memory");
     }
 
@@ -436,13 +441,14 @@ static int dir_entry_fullpath(lua_State *L)
 {
 #ifdef _WIN32
     struct dir_entry_data *ded = (struct dir_entry_data *)luaL_checkudata(L, 1, DIR_ENTRY_METATABLE);
-    char * res = joinpath(ded->folder, ded->c_file.name);
-    
+    char *res = joinpath(ded->folder, ded->c_file.name);
+
 #else
     struct dir_entry_data *ded = (struct dir_entry_data *)luaL_checkudata(L, 1, DIR_ENTRY_METATABLE);
-    char * res = joinpath(ded->folder, ded->entry->d_name);
+    char *res = joinpath(ded->folder, ded->entry->d_name);
 #endif
-    if (!res) {
+    if (!res)
+    {
         push_error(L, "Out of memory");
     }
 

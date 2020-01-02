@@ -1,6 +1,7 @@
 #include "lua.h"
 
 int eli_mkdir(lua_State *L);
+int eli_rmdir(lua_State *L);
 int eli_read_dir(lua_State *L);
 int eli_open_dir(lua_State *L);
 int eli_iter_dir(lua_State *L);
