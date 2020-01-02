@@ -80,7 +80,7 @@ typedef struct dir_entry_data
 ** Creates a directory.
 ** @param {string} directory path.
 */
-int lmkdir(lua_State *L)
+int eli_mkdir(lua_State *L)
 {
     const char *path = luaL_checkstring(L, 1);
     return push_result(L, _lmkdir(path), NULL);
@@ -93,7 +93,7 @@ static int isdotfile(const char *name)
     return name[0] == '.' && (name[1] == '\0' || (name[1] == '.' && name[2] == '\0'));
 }
 
-int lreaddir(lua_State *L)
+int eli_read_dir(lua_State *L)
 {
 #ifdef _WIN32
     struct _finddata_t c_file;
@@ -290,7 +290,7 @@ static int dir_iter(lua_State *L)
 /*
 ** Factory of directory iterators
 */
-int lopendir(lua_State *L)
+int eli_open_dir(lua_State *L)
 {
     const char *path = luaL_checkstring(L, 1);
     dir_data *d;
@@ -315,7 +315,7 @@ int lopendir(lua_State *L)
     return 1;
 }
 
-int lwalkdir(lua_State *L)
+int eli_iter_dir(lua_State *L)
 {
     const char *path = luaL_checkstring(L, 1);
     int withFileTypes = lua_toboolean(L, 2);

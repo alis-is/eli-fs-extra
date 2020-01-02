@@ -20,7 +20,7 @@
 ** @param #2 Name of link.
 ** @param #3 True if link is symbolic (optional).
 */
-int lmklink(lua_State *L)
+int eli_mklink(lua_State *L)
 {
     const char *origin = luaL_checkstring(L, 1);
     const char *target = luaL_checkstring(L, 2);

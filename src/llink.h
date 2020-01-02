@@ -1,3 +1,3 @@
 #include "lua.h"
 
-int lmklink(lua_State *L);
+int eli_mklink(lua_State *L);

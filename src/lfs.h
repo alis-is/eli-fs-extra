@@ -1,3 +1,3 @@
 #include "lua.h"
 
-int lmkdir(lua_State *L);
+int luaopen_eli_fs_extra(lua_State *L);

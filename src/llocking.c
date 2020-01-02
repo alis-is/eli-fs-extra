@@ -87,7 +87,7 @@ static int _file_lock(lua_State *L, FILE *fh, const char *mode, const long start
 ** @param #3 Number with start position (optional).
 ** @param #4 Number with length (optional).
 */
-int lfile_lock(lua_State *L)
+int eli_file_lock(lua_State *L)
 {
     FILE *fh = check_file(L, 1, "lock");
     const char *mode = luaL_checkstring(L, 2);
@@ -112,7 +112,7 @@ int lfile_lock(lua_State *L)
 ** @param #2 Number with start position (optional).
 ** @param #3 Number with length (optional).
 */
-int lfile_unlock(lua_State *L)
+int eli_file_unlock(lua_State *L)
 {
     FILE *f = check_file(L, 1, "unlock");
     const long start = (long)luaL_optinteger(L, 2, 0);

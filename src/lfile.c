@@ -177,7 +177,7 @@ static int _file_info_(lua_State *L, int (*st)(const char *, STAT_STRUCT *))
 /*
 ** Get file information using stat.
 */
-int lfile_info(lua_State *L)
+int eli_file_info(lua_State *L)
 {
     return _file_info_(L, STAT_FUNC);
 }
@@ -241,7 +241,7 @@ static int push_link_target(lua_State *L)
 /*
 ** Get symbolic link information using lstat.
 */
-int llink_info(lua_State *L)
+int eli_link_info(lua_State *L)
 {
     int ret;
     if (lua_isstring(L, 2) && (strcmp(lua_tostring(L, 2), "target") == 0))
@@ -261,7 +261,7 @@ int llink_info(lua_State *L)
     return ret;
 }
 
-int lsetmode(lua_State *L)
+int eli_set_file_mode(lua_State *L)
 {
     FILE *f = check_file(L, 1, "setmode");
     static const int mode[] = {_O_BINARY, _O_TEXT};
@@ -295,7 +295,7 @@ int lsetmode(lua_State *L)
 ** @param #2 Access time in seconds, current time is used if missing.
 ** @param #3 Modification time in seconds, access time is used if missing.
 */
-int lfile_utime(lua_State *L)
+int eli_file_utime(lua_State *L)
 {
     const char *file = luaL_checkstring(L, 1);
     struct utimbuf utb, *buf;
@@ -326,7 +326,7 @@ int _file_type(const char *path, const char **type)
     }
 }
 
-int lfile_type(lua_State *L)
+int eli_file_type(lua_State *L)
 {
     const char *path = luaL_checkstring(L, 1);
     const char *type;
