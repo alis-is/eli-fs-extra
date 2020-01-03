@@ -6,6 +6,7 @@
 #include "ldir.h"
 #include "llink.h"
 #include "lperm.h"
+#include "lpipe.h"
 
 static const struct luaL_Reg eliFsExtra[] = {
     {"file_info", eli_file_info},
@@ -26,6 +27,7 @@ static const struct luaL_Reg eliFsExtra[] = {
     {"chown", eli_chown},
     {"lock_dir", eli_lock_dir},
     {"unlock_dir", eli_unlock_dir},
+    {"pipe", eli_pipe},
     {NULL, NULL},
 };
 
