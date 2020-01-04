@@ -48,7 +48,7 @@ int eli_mklink(lua_State *L)
             return 3;
         }
         DWORD creationFlag = strcmp(type, "directory") == 0 ? SYMBOLIC_LINK_FLAG_DIRECTORY : 0;
-        if (CreateSymbolicLinkA(target, origin, creationFlag))
+        if (CreateSymbolicLink(target, origin, creationFlag))
         {
             return 0;
         }
