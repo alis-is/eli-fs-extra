@@ -31,25 +31,16 @@ char *joinpath(char *pth1, char *pth2)
 #endif
         const char *last_char = pth1;
         int append_directory_separator = 0;
-        if (pth1[strlen(pth1) - 1] == directory_separator[0])
-        {
-            char *dst = malloc(strlen(pth1) + strlen(pth2));
-            if (!dst) {
-                return "";
-            }
-            strcpy(dst, pth1);
-            strcat(dst, pth2);
-        }
-        else
-        {
-            char *dst = malloc(strlen(pth1) + strlen(pth2) + strlen(directory_separator));
-            if (!dst) {
-                return "";
-            }
-            strcpy(dst, pth1);
+        int separated = pth1[strlen(pth1) - 1] == directory_separator[0];
+        size_t l = separated ? strlen(pth1) + strlen(pth2) : strlen(pth1) + strlen(pth2) + strlen(directory_separator);
+        char *dst = malloc(l);
+        if (!dst)
+            return "";
+        strcpy(dst, pth1);
+        if (separated)
             strcat(dst, directory_separator);
-            strcat(dst, pth2);
-        }
+        strcat(dst, pth2);
+        return dst;
     }
 }
 

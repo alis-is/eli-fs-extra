@@ -17,7 +17,7 @@
 
 #endif
 
-#define LOCK_METATABLE "lock metatable"
+#define LOCK_METATABLE "ELI_LOCK"
 
 static int _file_lock(lua_State *L, FILE *fh, const char *mode, const long start, long len, const char *funcname)
 {

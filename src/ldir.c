@@ -4,6 +4,7 @@
 
 #include "lutil.h"
 
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <string.h>
 #include <errno.h>
@@ -26,8 +27,8 @@
 
 #endif
 
-#define DIR_METATABLE "directory metatable"
-#define DIR_ENTRY_METATABLE "direntry metatable"
+#define DIR_METATABLE "ELI_DIR"
+#define DIR_ENTRY_METATABLE "ELI_DIRENTRY"
 
 #ifdef _WIN32
 
@@ -420,7 +421,7 @@ int dir_entry_type(lua_State *L)
         lua_pushinteger(L, errno);
         return 3;
     }
-
+    free(path);
     lua_pushstring(L, mode2string(info.st_mode));
     return 1;
 }
@@ -453,6 +454,7 @@ static int dir_entry_fullpath(lua_State *L)
     }
 
     lua_pushstring(L, res);
+    free(res);
     return 1;
 }
 
