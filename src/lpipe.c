@@ -44,7 +44,7 @@ int pipe_is_nonblocking(lua_State *L)
             return push_error(L, "Failed nonblocking check");
 
         lua_pushboolean(L, (state & PIPE_NOWAIT) != 0);
-        _pipe->nonblocking = (flags & O_NONBLOCK) != 0;
+        _pipe->nonblocking = (state & PIPE_NOWAIT) != 0;
     }
     else
     {
@@ -140,22 +140,34 @@ int pipe_set_nonblocking(lua_State *L)
 #endif
 }
 
-// TODO: Implement win32 apis
-
 static int pipe_close(lua_State *L)
 {
     ELI_PIPE *p = ((ELI_PIPE *)luaL_checkudata(L, 1, PIPE_METATABLE));
+#ifdef _WIN32
+    int res = CloseHandle(p->h);
+    p->closed = 1;
+    return luaL_fileresult(L, res, NULL);
+#else
     int res = close(p->fd);
     p->closed = 1;
     return luaL_fileresult(L, (res == 0), NULL);
+#endif
 }
 
+#ifdef _WIN32
+static ELI_PIPE *new_pipe(lua_State *L, HANDLE h, const char *mode)
+#else
 static ELI_PIPE *new_pipe(lua_State *L, int fd, const char *mode)
+#endif
 {
     ELI_PIPE *p = (ELI_PIPE *)lua_newuserdata(L, sizeof(ELI_PIPE));
     luaL_getmetatable(L, PIPE_METATABLE);
     lua_setmetatable(L, -2);
+#ifdef _WIN32
+    p->h = h;
+#else
     p->fd = fd;
+#endif
     p->nonblocking = 0;
     p->closed = 0;
     return p;
@@ -187,8 +199,7 @@ int eli_pipe(lua_State *L)
 static int pipe_write(lua_State *L)
 {
     ELI_PIPE *_pipe = ((ELI_PIPE *)luaL_checkudata(L, 1, PIPE_METATABLE));
-    lua_pushvalue(L, 1); /* push pipe at the stack top (to be returned) */
-    int arg = 2;
+    int arg = 1;
 
     int nargs = lua_gettop(L) - arg;
     size_t status = 1;
@@ -196,12 +207,80 @@ static int pipe_write(lua_State *L)
     {
         size_t msgsize;
         const char *msg = luaL_checklstring(L, arg, &msgsize);
+#ifdef _WIN32
+        DWORD dwBytesWritten = 0;
+        DWORD bErrorFlag = WriteFile(_pipe->h, msg, msgsize, &dwBytesWritten, NULL);
+        if (bErrorFlag == FALSE)
+        {
+            DWORD err = GetLastError();
+            if (!_pipe->nonblocking || err != ERROR_IO_PENDING)
+            { // nonblocking so np
+                LPSTR messageBuffer = NULL;
+                size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                                             NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+                lua_pushnil(L);
+                lua_pushstring(L, messageBuffer);
+                lua_pushinteger(L, err);
+                return 3;
+            }
+        }
+        status = status && (dwBytesWritten == msgsize);
+#else
         status = status && (write(_pipe->fd, msg, msgsize) == msgsize);
+#endif
     }
-    if (status)
-        return 1; /* file handle already on stack top */
-    else
-        return luaL_fileresult(L, status, NULL);
+    lua_pushboolean(L, status);
+    return 1;
+}
+
+#ifdef _WIN32
+static DWORD read(HANDLE h, char *buffer, DWORD count)
+{
+    size_t res;
+    DWORD lpNumberOfBytesRead = 0;
+    DWORD bErrorFlag = ReadFile(h, buffer, LUAL_BUFFERSIZE, &lpNumberOfBytesRead, NULL);
+    return bErrorFlag == FALSE ? -1 : lpNumberOfBytesRead;
+}
+#endif
+
+static int push_read_result(lua_State *L, int res, int nonblocking)
+{
+    if (res == -1)
+    {
+        char *errmsg;
+        size_t _errno;
+
+#ifdef _WIN32
+        if (!nonblocking || (_errno = GetLastError()) != ERROR_NO_DATA)
+#else
+        if (errno != EAGAIN && errno != EWOULDBLOCK || !nonblocking)
+#endif
+        {
+#ifdef _WIN32
+            if (!nonblocking || _errno != ERROR_NO_DATA)
+            { // nonblocking so np
+                LPSTR messageBuffer = NULL;
+                size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                                             NULL, _errno, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+                errmsg = messageBuffer;
+            }
+#else
+            if (errno != EAGAIN && errno != EWOULDBLOCK || !nonblocking)
+            {
+                errmsg = strerror(errno);
+                _errno = errno;
+            }
+#endif
+            if (lua_rawlen(L, -1) == 0)
+            {
+                lua_pushnil(L);
+            }
+            lua_pushstring(L, errmsg);
+            lua_pushinteger(L, _errno);
+            return 3;
+        }
+    }
+    return 1;
 }
 
 static int read_all(lua_State *L, ELI_PIPE *_pipe)
@@ -209,7 +288,11 @@ static int read_all(lua_State *L, ELI_PIPE *_pipe)
     size_t res;
     luaL_Buffer b;
     luaL_buffinit(L, &b);
+#ifdef _WIN32
+    HANDLE fd = _pipe->h;
+#else
     int fd = _pipe->fd;
+#endif
 
     do
     { /* read file in chunks of LUAL_BUFFERSIZE bytes */
@@ -218,27 +301,19 @@ static int read_all(lua_State *L, ELI_PIPE *_pipe)
         if (res != -1)
             luaL_addlstring(&b, p, res);
     } while (res == LUAL_BUFFERSIZE);
+
     luaL_pushresult(&b); /* close buffer */
-    if (res == -1)
-    {
-        if (errno != EAGAIN && errno != EWOULDBLOCK || !_pipe->nonblocking)
-        {
-            if (lua_rawlen(L, -1) == 0)
-            {
-                lua_pushnil(L);
-            }
-            lua_pushstring(L, strerror(errno));
-            lua_pushinteger(L, errno);
-            return 3;
-        }
-    }
-    return 1;
+    return push_read_result(L, res, _pipe->nonblocking);
 }
 
 static int read_line(lua_State *L, ELI_PIPE *_pipe, int chop)
 {
     luaL_Buffer b;
+#ifdef _WIN32
+    HANDLE fd = _pipe->h;
+#else
     int fd = _pipe->fd;
+#endif
     char c = '\0';
     luaL_buffinit(L, &b);
     size_t res = 1;
@@ -251,20 +326,14 @@ static int read_line(lua_State *L, ELI_PIPE *_pipe, int chop)
         {
             buff[i++] = c;
         }
-
-        if (res == -1)
-        {
-            if (errno != EAGAIN && errno != EWOULDBLOCK || !_pipe->nonblocking)
-            {
-                return push_error(L, NULL);
-            }
-        }
-        luaL_addsize(&b, i);
+        if (res != -1)
+            luaL_addsize(&b, i);
     }
     if (!chop && c == '\n')
         luaL_addchar(&b, c);
     luaL_pushresult(&b);
-    return 1; //(c == '\n' || lua_rawlen(L, -1) > 0);
+
+    return push_read_result(L, res, _pipe->nonblocking);
 }
 
 static int pipe_read(lua_State *L)
@@ -275,7 +344,13 @@ static int pipe_read(lua_State *L)
     {
         size_t l = (size_t)luaL_checkinteger(L, 2);
         char *buffer = malloc(sizeof(char) * l);
-        size_t res = read(_pipe->fd, buffer, l);
+
+#ifdef _WIN32
+        HANDLE fd = _pipe->h;
+#else
+        int fd = _pipe->fd;
+#endif
+        size_t res = read(fd, buffer, l);
         if (res != -1)
         {
             lua_pushlstring(L, buffer, res);
@@ -297,7 +372,7 @@ static int pipe_read(lua_State *L)
             return read_line(L, _pipe, 1);
         case 'L': /* line with end-of-line */
             return read_line(L, _pipe, 0);
-        case 'a':                      
+        case 'a':
             return read_all(L, _pipe); /* read all data available */
         default:
             return luaL_argerror(L, 2, "invalid format");
