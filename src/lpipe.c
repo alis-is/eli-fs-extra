@@ -132,8 +132,9 @@ int pipe_set_nonblocking(lua_State *L)
         flags &= ~O_NONBLOCK;
     }
     int res = fcntl(fd, F_SETFL, flags);
-    if (res == 0) {
-       _pipe->nonblocking = nonblocking;
+    if (res == 0)
+    {
+        _pipe->nonblocking = nonblocking;
     }
     return push_result(L, res, NULL);
 #endif
@@ -215,12 +216,15 @@ static int read_all(lua_State *L, ELI_PIPE *_pipe)
         char *p = luaL_prepbuffer(&b);
         res = read(fd, p, LUAL_BUFFERSIZE);
         if (res != -1)
-           luaL_addlstring(&b, p, res);
+            luaL_addlstring(&b, p, res);
     } while (res == LUAL_BUFFERSIZE);
     luaL_pushresult(&b); /* close buffer */
-    if (res == -1) {
-        if (errno != EAGAIN && errno != EWOULDBLOCK || !_pipe->nonblocking) {
-            if (lua_rawlen(L, -1) == 0) {
+    if (res == -1)
+    {
+        if (errno != EAGAIN && errno != EWOULDBLOCK || !_pipe->nonblocking)
+        {
+            if (lua_rawlen(L, -1) == 0)
+            {
                 lua_pushnil(L);
             }
             lua_pushstring(L, strerror(errno));
@@ -239,26 +243,26 @@ static int read_line(lua_State *L, ELI_PIPE *_pipe, int chop)
     luaL_buffinit(L, &b);
     size_t res = 1;
 
-    while (res != -1 && res > 0 && c != EOF && c != '\n')
+    while (res == 1 && c != EOF && c != '\n')
     {
         char *buff = luaL_prepbuffer(&b);
         int i = 0;
-        while (i < LUAL_BUFFERSIZE && (res = read(fd, &c, sizeof(char))) != -1 && res > 0 && c != EOF && c != '\n')
+        while (i < LUAL_BUFFERSIZE && (res = read(fd, &c, sizeof(char))) == 1 && c != EOF && c != '\n')
         {
-             if (res == 1)
-                 buff[i++] = c;
+            buff[i++] = c;
         }
 
         if (res == -1)
         {
-            if (errno != EAGAIN && errno != EWOULDBLOCK || !_pipe->nonblocking) {
+            if (errno != EAGAIN && errno != EWOULDBLOCK || !_pipe->nonblocking)
+            {
                 return push_error(L, NULL);
             }
         }
         luaL_addsize(&b, i);
     }
     if (!chop && c == '\n')
-         luaL_addchar(&b, c);
+        luaL_addchar(&b, c);
     luaL_pushresult(&b);
     return 1; //(c == '\n' || lua_rawlen(L, -1) > 0);
 }
@@ -293,14 +297,13 @@ static int pipe_read(lua_State *L)
             return read_line(L, _pipe, 1);
         case 'L': /* line with end-of-line */
             return read_line(L, _pipe, 0);
-        case 'a':           /* file */
-            return read_all(L, _pipe); /* read entire file */
+        case 'a':                      
+            return read_all(L, _pipe); /* read all data available */
         default:
             return luaL_argerror(L, 2, "invalid format");
         }
     }
 }
-
 
 int pipe_create_meta(lua_State *L)
 {
