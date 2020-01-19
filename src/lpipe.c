@@ -200,9 +200,9 @@ int eli_pipe(lua_State *L)
 static int pipe_write(lua_State *L)
 {
     ELI_PIPE *_pipe = ((ELI_PIPE *)luaL_checkudata(L, 1, PIPE_METATABLE));
-    int arg = 1;
+    int arg = 2;
 
-    int nargs = lua_gettop(L) - arg;
+    int nargs = lua_gettop(L) - 1;
     size_t status = 1;
     for (; status && nargs--; arg++)
     {
@@ -383,12 +383,12 @@ static int pipe_read(lua_State *L)
 
 static int io_fclose(lua_State *L)
 {
-    luaL_Stream *p = tolstream(L);
+    luaL_Stream *p = ((luaL_Stream *)luaL_checkudata(L, 1, LUA_FILEHANDLE));
     int res = fclose(p->f);
     return luaL_fileresult(L, (res == 0), NULL);
 }
 
-static int to_filestream(lua_State *L)
+static int as_filestream(lua_State *L)
 {
     ELI_PIPE *_pipe = ((ELI_PIPE *)luaL_checkudata(L, 1, PIPE_METATABLE));
     luaL_Stream *p = (luaL_Stream *)lua_newuserdata(L, sizeof(luaL_Stream));
@@ -414,8 +414,8 @@ int pipe_create_meta(lua_State *L)
     lua_setfield(L, -2, "set_nonblocking");
     lua_pushcfunction(L, pipe_is_nonblocking);
     lua_setfield(L, -2, "is_nonblocking");
-    lua_pushcfunction(L, to_filestream);
-    lua_setfield(L, -2, "to_filestream");
+    lua_pushcfunction(L, as_filestream);
+    lua_setfield(L, -2, "as_filestream");
 
     /* Metamethods */
     lua_setfield(L, -2, "__index");
