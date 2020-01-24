@@ -143,13 +143,22 @@ int pipe_set_nonblocking(lua_State *L)
 static int pipe_close(lua_State *L)
 {
     ELI_PIPE *p = ((ELI_PIPE *)luaL_checkudata(L, 1, PIPE_METATABLE));
+    int res;
 #ifdef _WIN32
-    int res = CloseHandle(p->h);
-    p->closed = 1;
+    if (p->closed != 1)
+    {
+        p->closed = 1;
+        res = CloseHandle(p->h);
+        p->closed = 1 & (res != 0);
+    }
     return luaL_fileresult(L, res, NULL);
 #else
-    int res = close(p->fd);
-    p->closed = 1;
+    if (p->closed != 1)
+    {
+        p->closed = 1;
+        res = close(p->fd);
+        p->closed = 1 & (res == 0);
+    }
     return luaL_fileresult(L, (res == 0), NULL);
 #endif
 }
