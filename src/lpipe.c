@@ -402,7 +402,7 @@ static int as_filestream(lua_State *L)
     ELI_PIPE *_pipe = ((ELI_PIPE *)luaL_checkudata(L, 1, PIPE_METATABLE));
     luaL_Stream *p = (luaL_Stream *)lua_newuserdata(L, sizeof(luaL_Stream));
     luaL_setmetatable(L, LUA_FILEHANDLE);
-    p->f = fdopen(_pipe->fd, _pipe->mode);
+    p->f = fdopen(dup(_pipe->fd), _pipe->mode);
     p->closef = &io_fclose;
     return 1;
 }
