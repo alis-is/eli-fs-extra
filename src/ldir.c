@@ -391,6 +391,8 @@ int dir_create_meta(lua_State *L)
     lua_setfield(L, -2, "close");
     lua_pushcfunction(L, dir_path);
     lua_setfield(L, -2, "path");
+    lua_pushstring(L, DIR_METATABLE);
+    lua_setfield(L, -2, "__type");
 
     /* Metamethods */
     lua_setfield(L, -2, "__index");
@@ -473,6 +475,9 @@ int direntry_create_meta(lua_State *L)
     lua_setfield(L, -2, "type");
     lua_pushcfunction(L, dir_entry_fullpath);
     lua_setfield(L, -2, "fullpath");
+
+    lua_pushstring(L, DIR_ENTRY_METATABLE);
+    lua_setfield(L, -2, "__type");
 
     /* Metamethods */
     lua_setfield(L, -2, "__index");

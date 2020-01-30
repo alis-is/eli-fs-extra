@@ -141,7 +141,7 @@ int eli_lock_dir(lua_State *L)
     HANDLE fd;
     lfs_Lock *lock;
     char *ln;
-    const char *lockfile = "/lockfile";
+    const char *lockfile = "lockfile";
     const char *path = luaL_checklstring(L, 1, &pathl);
     ln = joinpath(path, lockfile);
     if (!ln)
@@ -190,7 +190,7 @@ int eli_lock_dir(lua_State *L)
     lfs_Lock *lock;
     size_t pathl;
     char *ln;
-    const char *lockfile = "/lockfile";
+    const char *lockfile = "lockfile";
     const char *path = luaL_checklstring(L, 1, &pathl);
     ln = joinpath(path, lockfile);
     if (!ln)
@@ -240,6 +240,9 @@ int lock_create_meta(lua_State *L)
     lua_setfield(L, -2, "free");
     lua_pushcfunction(L, eli_unlock_dir);
     lua_setfield(L, -2, "unlock");
+
+    lua_pushstring(L, LOCK_METATABLE);
+    lua_setfield(L, -2, "__type");
 
     /* Metamethods */
     lua_setfield(L, -2, "__index");

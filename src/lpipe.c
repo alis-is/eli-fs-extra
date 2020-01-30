@@ -426,6 +426,9 @@ int pipe_create_meta(lua_State *L)
     lua_pushcfunction(L, as_filestream);
     lua_setfield(L, -2, "as_filestream");
 
+    lua_pushstring(L, PIPE_METATABLE);
+    lua_setfield(L, -2, "__type");
+
     /* Metamethods */
     lua_setfield(L, -2, "__index");
     lua_pushcfunction(L, pipe_close);
