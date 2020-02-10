@@ -41,7 +41,7 @@ int eli_chmod(lua_State *L)
         const char *smode = lua_tolstring(L, 2, &len);
         if (len < 9)
         {
-            return luaL_argerror(L, 2, "Mode as string has to be at least 8 characters long.");
+            return luaL_argerror(L, 2, "Mode as string has to be at least 9 characters long.");
         }
         mode = 0;
 #ifdef _WIN32
