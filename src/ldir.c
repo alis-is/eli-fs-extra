@@ -178,6 +178,7 @@ int eli_read_dir(lua_State *L)
             result->folder = path;
             luaL_getmetatable(L, DIR_ENTRY_METATABLE);
             lua_setmetatable(L, -2);
+            lua_rawseti(L, resultPosition, i++); 
         }
         else
         {
