@@ -70,11 +70,7 @@ typedef struct dir_data
 typedef struct dir_entry_data
 {
     const char *folder;
-#ifdef _WIN32
-    struct _finddata_t c_file;
-#else
-    struct dirent *entry;
-#endif
+    const char *name;
 } dir_entry_data;
 
 /*
@@ -128,7 +124,7 @@ int eli_read_dir(lua_State *L)
         if (withFileTypes)
         {
             struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
-            memcpy(&result->c_file, &c_file, sizeof(struct _finddata_t));
+            result->name = c_file.name;
             result->folder = path;
             luaL_getmetatable(L, DIR_ENTRY_METATABLE);
             lua_setmetatable(L, -2);
@@ -148,7 +144,7 @@ int eli_read_dir(lua_State *L)
         if (withFileTypes)
         {
             struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
-            memcpy(&result->c_file, &c_file, sizeof(struct _finddata_t));
+            result->name = c_file.name;
             result->folder = path;
             luaL_getmetatable(L, DIR_ENTRY_METATABLE);
             lua_setmetatable(L, -2);
@@ -174,7 +170,7 @@ int eli_read_dir(lua_State *L)
         if (withFileTypes)
         {
             struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
-            result->entry = entry;
+            result->name = entry->d_name;
             result->folder = path;
             luaL_getmetatable(L, DIR_ENTRY_METATABLE);
             lua_setmetatable(L, -2);
@@ -219,7 +215,7 @@ static int dir_iter(lua_State *L)
             if (withFileTypes)
             {
                 struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
-                memcpy(&result->c_file, &c_file, sizeof(struct _finddata_t));
+                result->name = c_file.name;
                 result->folder = d->path;
                 luaL_getmetatable(L, DIR_ENTRY_METATABLE);
                 lua_setmetatable(L, -2);
@@ -249,7 +245,7 @@ static int dir_iter(lua_State *L)
         if (withFileTypes)
         {
             struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
-            memcpy(&result->c_file, &c_file, sizeof(struct _finddata_t));
+            result->name = c_file.name;
             result->folder = d->path;
             luaL_getmetatable(L, DIR_ENTRY_METATABLE);
             lua_setmetatable(L, -2);
@@ -272,7 +268,7 @@ static int dir_iter(lua_State *L)
         if (withFileTypes)
         {
             struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
-            result->entry = entry;
+            result->name = entry->d_name;
             result->folder = d->path;
             luaL_getmetatable(L, DIR_ENTRY_METATABLE);
             lua_setmetatable(L, -2);
@@ -406,10 +402,10 @@ int dir_entry_type(lua_State *L)
 {
 #ifdef _WIN32
     struct dir_entry_data *ded = (struct dir_entry_data *)luaL_checkudata(L, 1, DIR_ENTRY_METATABLE);
-    char *path = joinpath(ded->folder, ded->c_file.name);
+    char *path = joinpath(ded->folder, ded->name);
 #else
     struct dir_entry_data *ded = (struct dir_entry_data *)luaL_checkudata(L, 1, DIR_ENTRY_METATABLE);
-    char *path = joinpath(ded->folder, ded->entry->d_name);
+    char *path = joinpath(ded->folder, ded->name);
 #endif
     if (!path)
     {
@@ -433,10 +429,10 @@ static int dir_entry_name(lua_State *L)
 {
 #ifdef _WIN32
     struct dir_entry_data *ded = (struct dir_entry_data *)luaL_checkudata(L, 1, DIR_ENTRY_METATABLE);
-    lua_pushstring(L, ded->c_file.name);
+    lua_pushstring(L, ded->name);
 #else
     struct dir_entry_data *ded = (struct dir_entry_data *)luaL_checkudata(L, 1, DIR_ENTRY_METATABLE);
-    lua_pushstring(L, ded->entry->d_name);
+    lua_pushstring(L, ded->name);
 #endif
     return 1;
 }
@@ -445,11 +441,11 @@ static int dir_entry_fullpath(lua_State *L)
 {
 #ifdef _WIN32
     struct dir_entry_data *ded = (struct dir_entry_data *)luaL_checkudata(L, 1, DIR_ENTRY_METATABLE);
-    char *res = joinpath(ded->folder, ded->c_file.name);
+    char *res = joinpath(ded->folder, ded->name);
 
 #else
     struct dir_entry_data *ded = (struct dir_entry_data *)luaL_checkudata(L, 1, DIR_ENTRY_METATABLE);
-    char *res = joinpath(ded->folder, ded->entry->d_name);
+    char *res = joinpath(ded->folder, ded->name);
 #endif
     if (!res)
     {
