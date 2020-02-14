@@ -15,3 +15,5 @@ const char *perm2string(unsigned short mode);
 const char *mode2string(mode_t mode);
 const char *perm2string(mode_t mode);
 #endif
+
+char *clone_string(char * restrict str);

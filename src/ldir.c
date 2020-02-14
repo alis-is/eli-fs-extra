@@ -34,8 +34,8 @@
 
 #define DIR_SEPARATOR '\\'
 #define LMAXPATHLEN MAX_PATH
-#define STAT_STRUCT struct _stati64
-#define STAT_FUNC _stati64
+#define STAT_STRUCT struct _stat
+#define STAT_FUNC _stat
 
 #define _lmkdir _mkdir
 
@@ -69,8 +69,8 @@ typedef struct dir_data
 
 typedef struct dir_entry_data
 {
-    const char *folder;
-    const char *name;
+    char *folder;
+    char *name;
 } dir_entry_data;
 
 /*
@@ -124,8 +124,8 @@ int eli_read_dir(lua_State *L)
         if (withFileTypes)
         {
             struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
-            result->name = c_file.name;
-            result->folder = path;
+            result->name = clone_string(c_file.name); 
+            result->folder = clone_string(path); 
             luaL_getmetatable(L, DIR_ENTRY_METATABLE);
             lua_setmetatable(L, -2);
             lua_rawseti(L, resultPosition, i++); /* t[i] = result */
@@ -144,8 +144,8 @@ int eli_read_dir(lua_State *L)
         if (withFileTypes)
         {
             struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
-            result->name = c_file.name;
-            result->folder = path;
+            result->name = clone_string(c_file.name); 
+            result->folder = clone_string(path); 
             luaL_getmetatable(L, DIR_ENTRY_METATABLE);
             lua_setmetatable(L, -2);
             lua_rawseti(L, resultPosition, i++); /* t[i] = result */
@@ -170,8 +170,8 @@ int eli_read_dir(lua_State *L)
         if (withFileTypes)
         {
             struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
-            result->name = entry->d_name;
-            result->folder = path;
+            result->name = clone_string(entry->d_name); 
+            result->folder = clone_string(path); 
             luaL_getmetatable(L, DIR_ENTRY_METATABLE);
             lua_setmetatable(L, -2);
             lua_rawseti(L, resultPosition, i++); 
@@ -215,8 +215,8 @@ static int dir_iter(lua_State *L)
             if (withFileTypes)
             {
                 struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
-                result->name = c_file.name;
-                result->folder = d->path;
+                result->name = clone_string(c_file.name); 
+                result->folder = clone_string(d->path); 
                 luaL_getmetatable(L, DIR_ENTRY_METATABLE);
                 lua_setmetatable(L, -2);
             }
@@ -245,8 +245,8 @@ static int dir_iter(lua_State *L)
         if (withFileTypes)
         {
             struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
-            result->name = c_file.name;
-            result->folder = d->path;
+            result->name = clone_string(c_file.name); 
+            result->folder = clone_string(d->path); 
             luaL_getmetatable(L, DIR_ENTRY_METATABLE);
             lua_setmetatable(L, -2);
         }
@@ -268,8 +268,8 @@ static int dir_iter(lua_State *L)
         if (withFileTypes)
         {
             struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
-            result->name = entry->d_name;
-            result->folder = d->path;
+            result->name = clone_string(entry->d_name); 
+            result->folder = clone_string(d->path); 
             luaL_getmetatable(L, DIR_ENTRY_METATABLE);
             lua_setmetatable(L, -2);
         }
@@ -301,7 +301,7 @@ int eli_open_dir(lua_State *L)
     luaL_getmetatable(L, DIR_METATABLE);
     lua_setmetatable(L, -2);
     d->closed = 0;
-    d->path = path;
+    d->path = clone_string(path); 
     d->withFileTypes = -1;
 #ifdef _WIN32
     d->hFile = 0L;
@@ -329,7 +329,7 @@ int eli_iter_dir(lua_State *L)
     lua_setmetatable(L, -2);
     d->closed = 0;
     d->withFileTypes = withFileTypes;
-    d->path = path;
+    d->path = clone_string(path); 
 #ifdef _WIN32
     d->hFile = 0L;
     if (strlen(path) > LMAXPATHLEN - 2)
@@ -362,6 +362,8 @@ static int lclosedir(lua_State *L)
     }
 #endif
     d->closed = 1;
+
+    free(d->path);
     return 0;
 }
 
@@ -457,6 +459,14 @@ static int dir_entry_fullpath(lua_State *L)
     return 1;
 }
 
+static int dir_entry_close(lua_State *L)
+{
+    dir_entry_data *d = (dir_entry_data *)lua_touserdata(L, 1);
+    free(d->name);
+    free(d->folder);
+    return 0;
+}
+
 /*
 ** Creates directory metatable.
 */
@@ -478,5 +488,7 @@ int direntry_create_meta(lua_State *L)
 
     /* Metamethods */
     lua_setfield(L, -2, "__index");
+    lua_pushcfunction(L, dir_entry_close);
+    lua_setfield(L, -2, "__gc");
     return 1;
 }

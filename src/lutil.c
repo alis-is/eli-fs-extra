@@ -29,7 +29,6 @@ char *joinpath(char *pth1, char *pth2)
 #else
         char directory_separator[] = "/";
 #endif
-        const char *last_char = pth1;
         int append_directory_separator = 0;
         
         if (pth1[strlen(pth1) - 1] == directory_separator[0]) {
@@ -39,10 +38,10 @@ char *joinpath(char *pth1, char *pth2)
             pth2 = pth2 + 1;
         }
         
-        size_t l = strlen(pth1) + strlen(pth2) + strlen(directory_separator);
-        char *dst = malloc(l);
+        size_t l = strlen(pth1) + strlen(pth2) + strlen(directory_separator) + 1;
+        char *dst = malloc(l * sizeof(char));
         if (!dst)
-            return "";
+            return NULL;
         strcpy(dst, pth1);
         strcat(dst, directory_separator);
         strcat(dst, pth2);
@@ -191,3 +190,10 @@ const char *perm2string(mode_t mode)
     return perms;
 }
 #endif
+
+char *clone_string(char * restrict str) 
+{
+    char * result = malloc(strlen(str) + 1); 
+    strcpy(result, str);
+    return result;
+}
