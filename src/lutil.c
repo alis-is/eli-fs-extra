@@ -191,7 +191,7 @@ const char *perm2string(mode_t mode)
 }
 #endif
 
-char *clone_string(char * restrict str) 
+char *clone_string(const char * str) 
 {
     char * result = malloc(strlen(str) + 1); 
     strcpy(result, str);

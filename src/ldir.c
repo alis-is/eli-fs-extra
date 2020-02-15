@@ -57,7 +57,7 @@
 typedef struct dir_data
 {
     int closed;
-    const char *path;
+    char *path;
 #ifdef _WIN32
     intptr_t hFile;
     char pattern[LMAXPATHLEN + 1];
