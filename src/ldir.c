@@ -64,7 +64,7 @@ typedef struct dir_data
 #else
     DIR *dir;
 #endif
-    int withFileTypes;
+    int asDirEntries;
 } dir_data;
 
 typedef struct dir_entry_data
@@ -103,7 +103,7 @@ int eli_read_dir(lua_State *L)
 #endif
 
     const char *path = luaL_checkstring(L, 1);
-    const int withFileTypes = lua_toboolean(L, 2);
+    const int asDirEntries = lua_toboolean(L, 2);
     lua_newtable(L);
     int resultPosition = lua_gettop(L);
 #ifdef _WIN32
@@ -121,7 +121,7 @@ int eli_read_dir(lua_State *L)
     }
     else if (!isdotfile(c_file.name))
     {
-        if (withFileTypes)
+        if (asDirEntries)
         {
             struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
             result->name = clone_string(c_file.name); 
@@ -141,7 +141,7 @@ int eli_read_dir(lua_State *L)
     {
         if (isdotfile(c_file.name))
             continue;
-        if (withFileTypes)
+        if (asDirEntries)
         {
             struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
             result->name = clone_string(c_file.name); 
@@ -167,7 +167,7 @@ int eli_read_dir(lua_State *L)
     {
         if (isdotfile(entry->d_name))
             continue;
-        if (withFileTypes)
+        if (asDirEntries)
         {
             struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
             result->name = clone_string(entry->d_name); 
@@ -199,7 +199,7 @@ static int dir_iter(lua_State *L)
 #endif
     dir_data *d = (dir_data *)luaL_checkudata(L, 1, DIR_METATABLE);
     luaL_argcheck(L, d->closed == 0, 1, "closed directory");
-    const int withFileTypes = withFileTypes == -1 ? lua_toboolean(L, 2) : d->withFileTypes;
+    const int asDirEntries = asDirEntries == -1 ? lua_toboolean(L, 2) : d->asDirEntries;
 #ifdef _WIN32
     if (d->hFile == 0L)
     { /* first entry */
@@ -212,7 +212,7 @@ static int dir_iter(lua_State *L)
         }
         else if (!isdotfile(c_file.name))
         {
-            if (withFileTypes)
+            if (asDirEntries)
             {
                 struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
                 result->name = clone_string(c_file.name); 
@@ -242,7 +242,7 @@ static int dir_iter(lua_State *L)
     }
     else
     {
-        if (withFileTypes)
+        if (asDirEntries)
         {
             struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
             result->name = clone_string(c_file.name); 
@@ -265,7 +265,7 @@ static int dir_iter(lua_State *L)
     if (entry != NULL)
     {
 
-        if (withFileTypes)
+        if (asDirEntries)
         {
             struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
             result->name = clone_string(entry->d_name); 
@@ -302,7 +302,7 @@ int eli_open_dir(lua_State *L)
     lua_setmetatable(L, -2);
     d->closed = 0;
     d->path = clone_string(path); 
-    d->withFileTypes = -1;
+    d->asDirEntries = -1;
 #ifdef _WIN32
     d->hFile = 0L;
     if (strlen(path) > LMAXPATHLEN - 2)
@@ -320,7 +320,7 @@ int eli_open_dir(lua_State *L)
 int eli_iter_dir(lua_State *L)
 {
     const char *path = luaL_checkstring(L, 1);
-    int withFileTypes = lua_toboolean(L, 2);
+    int asDirEntries = lua_toboolean(L, 2);
     dir_data *d;
 
     lua_pushcfunction(L, dir_iter);
@@ -328,7 +328,7 @@ int eli_iter_dir(lua_State *L)
     luaL_getmetatable(L, DIR_METATABLE);
     lua_setmetatable(L, -2);
     d->closed = 0;
-    d->withFileTypes = withFileTypes;
+    d->asDirEntries = asDirEntries;
     d->path = clone_string(path); 
 #ifdef _WIN32
     d->hFile = 0L;
