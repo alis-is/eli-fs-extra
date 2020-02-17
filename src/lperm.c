@@ -18,6 +18,7 @@
 #else // unix
 
 #include <unistd.h>
+#include <pwd.h>
 
 #define LMODE_T mode_t
 
@@ -89,5 +90,21 @@ int eli_chown(lua_State *L)
     uid_t user = luaL_checknumber(L, 2);
     gid_t group = luaL_optnumber(L, 3, -1);
     return push_result(L, chown(path, user, group), NULL);
+#endif
+}
+
+int eli_getuid(lua_State *L)
+{
+#ifdef _WIN32
+    errno = ENOSYS; /* = "Function not implemented" */
+    return push_result(L, -1, "getuid is not supported on Windows");
+#else
+    const char *user = luaL_checkstring(L, 1);
+    struct passwd *p;
+    if ((p = getpwnam(user)) == NULL) {
+        return push_error(L, NULL);
+    }
+    lua_pushinteger(L, p->pw_uid);
+    return 1;
 #endif
 }

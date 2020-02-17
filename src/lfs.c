@@ -25,6 +25,7 @@ static const struct luaL_Reg eliFsExtra[] = {
     {"unlock_file", eli_file_unlock},
     {"chmod", eli_chmod},
     {"chown", eli_chown},
+    {"getuid", eli_getuid},
     {"lock_dir", eli_lock_dir},
     {"unlock_dir", eli_unlock_dir},
     {"pipe", eli_pipe},
