@@ -3,6 +3,7 @@
 #include "lualib.h"
 
 #include "lutil.h"
+#include "lfsutil.h"
 
 #include <stdlib.h>
 #include <sys/stat.h>

@@ -2,6 +2,7 @@
 #include "lauxlib.h"
 
 #include "lutil.h"
+#include "lfsutil.h"
 #include "lfile.h"
 
 #ifdef _WIN32

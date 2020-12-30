@@ -3,6 +3,7 @@
 #include "lualib.h"
 #include <errno.h>
 #include "lutil.h"
+#include "lfsutil.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>

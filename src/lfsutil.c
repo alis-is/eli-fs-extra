@@ -48,31 +48,6 @@ char *joinpath(char *pth1, char *pth2)
         return dst;
     }
 }
-
-int push_error(lua_State *L, const char *info)
-{
-    lua_pushnil(L);
-    if (info == NULL)
-        lua_pushstring(L, strerror(errno));
-    else
-        lua_pushfstring(L, "%s: %s", info, strerror(errno));
-    lua_pushinteger(L, errno);
-    return 3;
-}
-
-int push_result(lua_State *L, int res, const char *info)
-{
-    if (res == -1)
-    {
-        return push_error(L, info);
-    }
-    else
-    {
-        lua_pushboolean(L, 1);
-        return 1;
-    }
-}
-
 /*
 ** Check if the given element on the stack is a file and returns it.
 */

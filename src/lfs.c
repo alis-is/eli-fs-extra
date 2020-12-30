@@ -6,7 +6,6 @@
 #include "ldir.h"
 #include "llink.h"
 #include "lperm.h"
-#include "lpipe.h"
 
 static const struct luaL_Reg eliFsExtra[] = {
     {"file_info", eli_file_info},
@@ -28,7 +27,6 @@ static const struct luaL_Reg eliFsExtra[] = {
     {"getuid", eli_getuid},
     {"lock_dir", eli_lock_dir},
     {"unlock_dir", eli_unlock_dir},
-    {"pipe", eli_pipe},
     {NULL, NULL},
 };
 
@@ -36,7 +34,6 @@ int luaopen_eli_fs_extra(lua_State *L)
 {
     dir_create_meta(L);
     direntry_create_meta(L);
-    pipe_create_meta(L);
     lock_create_meta(L);
     lua_newtable(L);
     luaL_setfuncs(L, eliFsExtra, 0);

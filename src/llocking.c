@@ -1,6 +1,7 @@
 #include "lua.h"
 #include "lauxlib.h"
 #include "lutil.h"
+#include "lfsutil.h"
 
 #include <errno.h>
 #include <string.h>
