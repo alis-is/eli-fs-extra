@@ -18,7 +18,7 @@
 
 #endif
 
-#define LOCK_METATABLE "ELI_LOCK"
+#define LOCK_METATABLE "ELI_DIR_LOCK"
 
 static int _file_lock(lua_State *L, FILE *fh, const char *mode, const long start, long len, const char *funcname)
 {
@@ -220,11 +220,16 @@ int eli_unlock_dir(lua_State *L)
     lfs_Lock *lock = (lfs_Lock *)luaL_checkudata(L, 1, LOCK_METATABLE);
     if (lock->ln)
     {
-        unlink(lock->ln);
+        if (unlink(lock->ln) != 0) {
+            lua_pushnil(L);
+            lua_pushstring(L, strerror(errno));
+            return 2;
+        }
         free(lock->ln);
         lock->ln = NULL;
     }
-    return 0;
+    lua_pushboolean(L, 1);
+    return 1;
 }
 #endif
 
