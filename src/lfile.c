@@ -341,3 +341,32 @@ int eli_file_type(lua_State *L)
     lua_pushstring(L, type);
     return 1;
 }
+
+int _link_type(const char *path, const char **type)
+{
+    STAT_STRUCT info;
+    if (LSTAT_FUNC(path, &info))
+    {
+        return -1;
+    }
+    else
+    {
+        *type = mode2string(info.st_mode);
+        return 0;
+    }
+}
+
+int eli_link_type(lua_State *L)
+{
+    const char *path = luaL_checkstring(L, 1);
+    const char *type;
+    if (_link_type(path, &type))
+    {
+        lua_pushnil(L);
+        lua_pushfstring(L, "cannot obtain information from path '%s': %s", path, strerror(errno));
+        lua_pushinteger(L, errno);
+        return 3;
+    }
+    lua_pushstring(L, type);
+    return 1;
+}

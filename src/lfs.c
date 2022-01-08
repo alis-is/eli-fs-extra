@@ -17,6 +17,7 @@ static const struct luaL_Reg eliFsExtra[] = {
     {"mkdir", eli_mkdir},
     {"rmdir", eli_rmdir},
     {"link_info", eli_link_info},
+    {"link_type", eli_link_type},
     {"set_file_mode", eli_set_file_mode},
     {"utime", eli_file_utime},
     {"touch", eli_file_utime},
