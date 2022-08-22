@@ -199,7 +199,7 @@ static int push_link_target(lua_State *L)
     {
         return push_error(L, "Failed to open link");
     }
-    char *path[LMAXPATHLEN];
+    char path[LMAXPATHLEN];
     DWORD dwRet = GetFinalPathNameByHandle(h, path, LMAXPATHLEN, VOLUME_NAME_NT);
     if (dwRet == 0)
     {

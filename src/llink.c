@@ -40,7 +40,7 @@ int eli_mklink(lua_State *L)
     int symlink = lua_toboolean(L, 3);
     if (symlink)
     {
-        char *type;
+        const char *type;
         if (_file_type(target, &type))
         {
             lua_pushnil(L);
