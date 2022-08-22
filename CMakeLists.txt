@@ -1,8 +1,7 @@
-cmake_minimum_required (VERSION 2.6)
 project (eli_fs_extra)
 
 file(GLOB eli_fs_extra_sources ./src/**.c)
-SET(eli_fs_extra ${eli_fs_extra_sources})
+set(eli_fs_extra ${eli_fs_extra_sources})
 
-ADD_LIBRARY (eli_fs_extra ${eli_fs_extra})
-TARGET_LINK_LIBRARIES (eli_fs_extra)
+add_library(eli_fs_extra ${eli_fs_extra})
+target_link_libraries (eli_fs_extra)
