@@ -67,10 +67,10 @@ FILE *check_file(lua_State *L, int idx, const char *funcname)
 
 #ifdef _WIN32
 #ifndef S_ISDIR
-#define S_ISDIR(mode) (mode & _S_IFDIR)
+#define S_ISDIR(mode) (((m) & _S_IFMT) == _S_IFDIR)
 #endif
 #ifndef S_ISREG
-#define S_ISREG(mode) (mode & _S_IFREG)
+#define S_ISREG(mode) (((m) & _S_IFMT) == _S_IFREG)
 #endif
 #ifndef S_ISLNK
 #define S_ISLNK(mode) (0)
@@ -82,7 +82,7 @@ FILE *check_file(lua_State *L, int idx, const char *funcname)
 #define S_ISFIFO(mode) (0)
 #endif
 #ifndef S_ISCHR
-#define S_ISCHR(mode) (mode & _S_IFCHR)
+#define S_ISCHR(mode) (((m) & _S_IFMT) == _S_IFCHR)
 #endif
 #ifndef S_ISBLK
 #define S_ISBLK(mode) (0)

@@ -28,8 +28,8 @@
 #ifdef _WIN32
 
 #define DIR_SEPARATOR '\\'
-#define STAT_STRUCT struct _stati64
-#define STAT_FUNC _stati64
+#define STAT_STRUCT struct _stat
+#define STAT_FUNC _stat
 #define LSTAT_FUNC STAT_FUNC
 #define LMAXPATHLEN MAX_PATH
 

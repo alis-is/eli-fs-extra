@@ -55,7 +55,6 @@ static int _file_lock(lua_State *L, FILE *fh, const char *mode, const long start
         len = ftell(fh);
     }
     fseek(fh, start, SEEK_SET);
-
     code = _locking(fileno(fh), lkmode, len);
 #else
     struct flock f;
