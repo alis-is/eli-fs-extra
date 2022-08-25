@@ -28,9 +28,9 @@
 #ifdef _WIN32
 
 #define DIR_SEPARATOR '\\'
-#define STAT_STRUCT struct _stat
-#define STAT_FUNC _stat
-#define LSTAT_FUNC STAT_FUNC
+#define STAT_STRUCT struct _stati64
+#define STAT_FUNC _stati64
+#define LSTAT_FUNC lfs_win32_lstat
 #define LMAXPATHLEN MAX_PATH
 
 #define _lsetmode(file, m) (_setmode(_fileno(file), m))
@@ -174,6 +174,42 @@ static int _file_info_(lua_State *L, int (*st)(const char *, STAT_STRUCT *))
     }
     return 1;
 }
+
+#ifdef _WIN32
+#define TICKS_PER_SECOND 10000000
+#define EPOCH_DIFFERENCE 11644473600LL
+time_t windowsToUnixTime(FILETIME ft)
+{
+  ULARGE_INTEGER uli;
+  uli.LowPart = ft.dwLowDateTime;
+  uli.HighPart = ft.dwHighDateTime;
+  return (time_t)(uli.QuadPart / TICKS_PER_SECOND - EPOCH_DIFFERENCE);
+}
+
+int lfs_win32_lstat(const char *path, STAT_STRUCT *buffer)
+{
+  WIN32_FILE_ATTRIBUTE_DATA win32buffer;
+  if (GetFileAttributesEx(path, GetFileExInfoStandard, &win32buffer)) {
+   if (!(win32buffer.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)) {
+      return STAT_FUNC(path, buffer);
+    }
+    buffer->st_mode = _S_IFLNK;
+    buffer->st_dev = 0;
+    buffer->st_ino = 0;
+    buffer->st_nlink = 0;
+    buffer->st_uid = 0;
+    buffer->st_gid = 0;
+    buffer->st_rdev = 0;
+    buffer->st_atime = windowsToUnixTime(win32buffer.ftLastAccessTime);
+    buffer->st_mtime = windowsToUnixTime(win32buffer.ftLastWriteTime);
+    buffer->st_ctime = windowsToUnixTime(win32buffer.ftCreationTime);
+    buffer->st_size = 0;
+    return 0;
+  } else {
+    return 1;
+  }
+}
+#endif
 
 /*
 ** Get file information using stat.

@@ -36,6 +36,7 @@ int luaopen_eli_fs_extra(lua_State *L)
     dir_create_meta(L);
     direntry_create_meta(L);
     lock_create_meta(L);
+    dir_lock_create_meta(L);
     lua_newtable(L);
     luaL_setfuncs(L, eliFsExtra, 0);
     return 1;
