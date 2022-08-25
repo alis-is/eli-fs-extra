@@ -25,6 +25,10 @@
 
 #endif
 
+#ifndef _S_IFLNK
+#define _S_IFLNK 0x400
+#endif
+
 #ifdef _WIN32
 
 #define DIR_SEPARATOR '\\'
