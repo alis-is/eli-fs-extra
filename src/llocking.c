@@ -147,17 +147,19 @@ int eli_file_lock(lua_State *L) {
 */
 int eli_file_unlock(lua_State *L) {
   efs_lock *lock = (efs_lock *)luaL_checkudata(L, 1, LOCK_METATABLE);
-  if (lock->ownsFile && lock->file != NULL) {
-    if (fclose(lock->file) != 0) {
-      return push_error(L, "unlock");
+  if (lock->file != NULL) {
+    if (lock->ownsFile) {
+      if (fclose(lock->file) != 0) {
+        return push_error(L, "unlock");
+      }
+      lock->file = NULL;
+      lock->ownsFile = 0;
+    } else {
+      if (!_file_lock(L, lock->file, "u", lock->start, lock->len, "unlock")) {
+        return push_error(L, NULL);
+      }
+      lock->file = NULL;
     }
-    lock->file = NULL;
-    lock->ownsFile = 0;
-  } else {
-    if (!_file_lock(L, lock->file, "u", lock->start, lock->len, "unlock")) {
-      return push_error(L, NULL);
-    }
-    lock->file = NULL;
   }
   lua_pushboolean(L, 1);
   return 1;
