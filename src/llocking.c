@@ -95,7 +95,7 @@ typedef struct efs_lock {
 ** @param #4 Number with length (optional).
 */
 int eli_file_lock(lua_State *L) {
-  const FILE *fh;
+  FILE *fh;
   const int argt = lua_type(L, 1);
   int ownsFile = 0;
   switch (argt) {
