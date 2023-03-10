@@ -99,10 +99,11 @@ int eli_file_lock(lua_State *L) {
   const int argt = lua_type(L, 1);
   int ownsFile = 0;
   switch (argt) {
-  case LUA_TUSERDATA:
+  case LUA_TUSERDATA: {
     fh = check_file(L, 1, "lock");
     break;
-  case LUA_TSTRING:
+  }
+  case LUA_TSTRING: {
     const char *path = luaL_checkstring(L, 1);
     fh = fopen(path, "ab");
     if (fh == 0) {
@@ -110,9 +111,11 @@ int eli_file_lock(lua_State *L) {
     }
     ownsFile = 1;
     break;
-  default:
+  }
+  default: {
     luaL_error(L, "lock: Invalid type (%s) string or FILE* expected.", argt);
     return 0;
+  }
   }
   const long start = (long)luaL_optinteger(L, 3, 0);
   const long len = (long)luaL_optinteger(L, 4, 0);
