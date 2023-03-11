@@ -103,7 +103,6 @@ int eli_read_dir(lua_State *L)
 #else
     struct dirent *entry;
 #endif
-
     const char *path = luaL_checkstring(L, 1);
     const int asDirEntries = lua_toboolean(L, 2);
     lua_newtable(L);
@@ -203,8 +202,8 @@ static int dir_iter(lua_State *L)
     struct dirent *entry;
 #endif
     dir_data *d = (dir_data *)luaL_checkudata(L, 1, DIR_METATABLE);
-    luaL_argcheck(L, d->closed == 0, 1, "closed " DIR_METATABLE);
-    const int asDirEntries = asDirEntries == -1 ? lua_toboolean(L, 2) : d->asDirEntries;
+    luaL_argcheck(L, d->closed == 0, 1, "can not iterate over closed " DIR_METATABLE);
+    const int asDirEntries = d->asDirEntries == -1 ? lua_toboolean(L, 2) : d->asDirEntries;
 #ifdef _WIN32
     if (d->hFile == 0L)
     { /* first entry */
@@ -271,7 +270,6 @@ static int dir_iter(lua_State *L)
 
     if (entry != NULL)
     {
-
         if (asDirEntries)
         {
             struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
@@ -349,7 +347,9 @@ int eli_iter_dir(lua_State *L)
     if (d->dir == NULL)
         return luaL_error(L, "cannot open %s: %s", path, strerror(errno));
 #endif
-    return 2;
+    lua_pushnil(L);
+    lua_pushvalue(L, -2);  
+    return 4;
 }
 
 /*
@@ -357,21 +357,21 @@ int eli_iter_dir(lua_State *L)
 */
 static int lclosedir(lua_State *L)
 {
-    dir_data *d = (dir_data *)lua_touserdata(L, 1);
+    dir_data *d = (dir_data *)luaL_checkudata(L, 1, DIR_METATABLE);
 #ifdef _WIN32
     if (!d->closed && d->hFile)
     {
         _findclose(d->hFile);
+        free(d->path);
     }
 #else
     if (!d->closed && d->dir)
     {
         closedir(d->dir);
+        free(d->path);
     }
 #endif
     d->closed = 1;
-
-    free(d->path);
     return 0;
 }
 
