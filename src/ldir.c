@@ -461,7 +461,7 @@ static int dir_entry_fullpath(lua_State *L)
 
 static int dir_entry_close(lua_State *L)
 {
-    dir_entry_data *d = (dir_entry_data *)lua_touserdata(L, 1);
+    dir_entry_data *d = (dir_entry_data *)luaL_checkudata(L, 1, DIR_ENTRY_METATABLE);
     if (!d->closed) {
         free(d->name);
         free(d->folder);
