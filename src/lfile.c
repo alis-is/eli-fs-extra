@@ -136,6 +136,46 @@ static int _push_file_info_member(lua_State *L, STAT_STRUCT *info,
 	}
 }
 
+#ifdef _WIN32
+#define TICKS_PER_SECOND 10000000
+#define EPOCH_DIFFERENCE 11644473600LL
+time_t windowsToUnixTime(FILETIME ft)
+{
+	ULARGE_INTEGER uli;
+	uli.LowPart = ft.dwLowDateTime;
+	uli.HighPart = ft.dwHighDateTime;
+	return (time_t)(uli.QuadPart / TICKS_PER_SECOND - EPOCH_DIFFERENCE);
+}
+
+static int lfs_win32_lstat(const char *path, STAT_STRUCT *buffer)
+{
+	WIN32_FILE_ATTRIBUTE_DATA win32buffer;
+	if (GetFileAttributesEx(path, GetFileExInfoStandard, &win32buffer)) {
+		if (!(win32buffer.dwFileAttributes &
+		      FILE_ATTRIBUTE_REPARSE_POINT)) {
+			return STAT_FUNC(path, buffer);
+		}
+		buffer->st_mode = _S_IFLNK;
+		buffer->st_dev = 0;
+		buffer->st_ino = 0;
+		buffer->st_nlink = 0;
+		buffer->st_uid = 0;
+		buffer->st_gid = 0;
+		buffer->st_rdev = 0;
+		buffer->st_atime =
+			windowsToUnixTime(win32buffer.ftLastAccessTime);
+		buffer->st_mtime =
+			windowsToUnixTime(win32buffer.ftLastWriteTime);
+		buffer->st_ctime =
+			windowsToUnixTime(win32buffer.ftCreationTime);
+		buffer->st_size = 0;
+		return 0;
+	} else {
+		return 1;
+	}
+}
+#endif
+
 static int file_info(lua_State *L, int file_type_check)
 {
 	STAT_STRUCT info;
@@ -199,46 +239,6 @@ int eli_file_info(lua_State *L)
 {
 	return file_info(L, TYPE_CHECK_FILE);
 }
-
-#ifdef _WIN32
-#define TICKS_PER_SECOND 10000000
-#define EPOCH_DIFFERENCE 11644473600LL
-time_t windowsToUnixTime(FILETIME ft)
-{
-	ULARGE_INTEGER uli;
-	uli.LowPart = ft.dwLowDateTime;
-	uli.HighPart = ft.dwHighDateTime;
-	return (time_t)(uli.QuadPart / TICKS_PER_SECOND - EPOCH_DIFFERENCE);
-}
-
-static int lfs_win32_lstat(const char *path, STAT_STRUCT *buffer)
-{
-	WIN32_FILE_ATTRIBUTE_DATA win32buffer;
-	if (GetFileAttributesEx(path, GetFileExInfoStandard, &win32buffer)) {
-		if (!(win32buffer.dwFileAttributes &
-		      FILE_ATTRIBUTE_REPARSE_POINT)) {
-			return STAT_FUNC(path, buffer);
-		}
-		buffer->st_mode = _S_IFLNK;
-		buffer->st_dev = 0;
-		buffer->st_ino = 0;
-		buffer->st_nlink = 0;
-		buffer->st_uid = 0;
-		buffer->st_gid = 0;
-		buffer->st_rdev = 0;
-		buffer->st_atime =
-			windowsToUnixTime(win32buffer.ftLastAccessTime);
-		buffer->st_mtime =
-			windowsToUnixTime(win32buffer.ftLastWriteTime);
-		buffer->st_ctime =
-			windowsToUnixTime(win32buffer.ftCreationTime);
-		buffer->st_size = 0;
-		return 0;
-	} else {
-		return 1;
-	}
-}
-#endif
 
 static int push_link_target(lua_State *L)
 {
