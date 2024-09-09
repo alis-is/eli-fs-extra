@@ -1,3 +1,6 @@
+#ifndef ELI_EXTRA_FS_UTIL_H__
+#define ELI_EXTRA_FS_UTIL_H__
+
 #include "lua.h"
 #include <stdio.h>
 #include <sys/stat.h>
@@ -14,4 +17,6 @@ const char *mode2string(mode_t mode);
 const char *perm2string(mode_t mode);
 #endif
 
-char *clone_string(const char * str);
+char *clone_string(const char *str);
+
+#endif /* ELI_EXTRA_FS_UTIL_H__ */

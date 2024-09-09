@@ -1,3 +1,6 @@
+#ifndef ELI_EXTRA_FS_LOCKING_H__
+#define ELI_EXTRA_FS_LOCKING_H__
+
 #include "lua.h"
 
 int eli_file_lock(lua_State *L);
@@ -10,3 +13,5 @@ int eli_is_dir_lock_active(lua_State *L);
 
 int lock_create_meta(lua_State *L);
 int dir_lock_create_meta(lua_State *L);
+
+#endif /* ELI_EXTRA_FS_LOCKING_H__ */
