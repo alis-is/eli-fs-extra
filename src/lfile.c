@@ -1,7 +1,7 @@
 #include "lua.h"
 #include "lauxlib.h"
 
-#include "lutil.h"
+#include "lerror.h"
 #include "lfsutil.h"
 #include "lfile.h"
 

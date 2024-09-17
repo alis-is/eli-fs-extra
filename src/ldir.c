@@ -2,7 +2,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-#include "lutil.h"
+#include "lerror.h"
 #include "lfsutil.h"
 
 #include <stdlib.h>
@@ -51,28 +51,28 @@
 #define STAT_STRUCT struct stat
 #define STAT_FUNC stat
 
-#define _lmkdir(path) (mkdir((path), S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IXOTH))
+#define _lmkdir(path)                                                    \
+	(mkdir((path), S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | \
+			       S_IXGRP | S_IROTH | S_IXOTH))
 
 #endif
 
-typedef struct dir_data
-{
-    int closed;
-    char *path;
+typedef struct dir_data {
+	int closed;
+	char *path;
 #ifdef _WIN32
-    intptr_t hFile;
-    char pattern[LMAXPATHLEN + 1];
+	intptr_t hFile;
+	char pattern[LMAXPATHLEN + 1];
 #else
-    DIR *dir;
+	DIR *dir;
 #endif
-    int asDirEntries;
+	int asDirEntries;
 } dir_data;
 
-typedef struct dir_entry_data
-{
-    char *folder;
-    char *name;
-    int closed;
+typedef struct dir_entry_data {
+	char *folder;
+	char *name;
+	int closed;
 } dir_entry_data;
 
 /*
@@ -81,114 +81,105 @@ typedef struct dir_entry_data
 */
 int eli_mkdir(lua_State *L)
 {
-    const char *path = luaL_checkstring(L, 1);
-    return push_result(L, _lmkdir(path), NULL);
+	const char *path = luaL_checkstring(L, 1);
+	return push_result(L, _lmkdir(path), NULL);
 }
 
 int eli_rmdir(lua_State *L)
 {
-    const char *path = luaL_checkstring(L, 1);
-    return push_result(L, rmdir(path), NULL);
+	const char *path = luaL_checkstring(L, 1);
+	return push_result(L, rmdir(path), NULL);
 }
 
 static int isdotfile(const char *name)
 {
-    return name[0] == '.' && (name[1] == '\0' || (name[1] == '.' && name[2] == '\0'));
+	return name[0] == '.' &&
+	       (name[1] == '\0' || (name[1] == '.' && name[2] == '\0'));
 }
 
 int eli_read_dir(lua_State *L)
 {
 #ifdef _WIN32
-    struct _finddata_t c_file;
+	struct _finddata_t c_file;
 #else
-    struct dirent *entry;
+	struct dirent *entry;
 #endif
-    const char *path = luaL_checkstring(L, 1);
-    const int asDirEntries = lua_toboolean(L, 2);
-    lua_newtable(L);
-    int resultPosition = lua_gettop(L);
+	const char *path = luaL_checkstring(L, 1);
+	const int asDirEntries = lua_toboolean(L, 2);
+	lua_newtable(L);
+	int resultPosition = lua_gettop(L);
 #ifdef _WIN32
-    intptr_t hFile = 0L;
-    char pattern[LMAXPATHLEN + 1];
-    if (strlen(path) > LMAXPATHLEN - 2)
-        return luaL_error(L, "path too long: %s", path);
-    else
-        sprintf(pattern, "%s/*", path);
+	intptr_t hFile = 0L;
+	char pattern[LMAXPATHLEN + 1];
+	if (strlen(path) > LMAXPATHLEN - 2)
+		return luaL_error(L, "path too long: %s", path);
+	else
+		sprintf(pattern, "%s/*", path);
 
-    int i = 1;
-    if ((hFile = _findfirst(pattern, &c_file)) == -1L)
-    {
-        return 1;
-    }
-    else if (!isdotfile(c_file.name))
-    {
-        if (asDirEntries)
-        {
-            struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
-            result->name = clone_string(c_file.name); 
-            result->folder = clone_string(path); 
-            result->closed = 0;
-            luaL_getmetatable(L, DIR_ENTRY_METATABLE);
-            lua_setmetatable(L, -2);
-            lua_rawseti(L, resultPosition, i++); /* t[i] = result */
-        }
-        else
-        {
-            lua_pushstring(L, c_file.name);      /* push path */
-            lua_rawseti(L, resultPosition, i++); /* t[i] = result */
-        }
-    }
+	int i = 1;
+	if ((hFile = _findfirst(pattern, &c_file)) == -1L) {
+		return 1;
+	} else if (!isdotfile(c_file.name)) {
+		if (asDirEntries) {
+			struct dir_entry_data *result = lua_newuserdata(
+				L, sizeof(struct dir_entry_data));
+			result->name = clone_string(c_file.name);
+			result->folder = clone_string(path);
+			result->closed = 0;
+			luaL_getmetatable(L, DIR_ENTRY_METATABLE);
+			lua_setmetatable(L, -2);
+			lua_rawseti(L, resultPosition, i++); /* t[i] = result */
+		} else {
+			lua_pushstring(L, c_file.name); /* push path */
+			lua_rawseti(L, resultPosition, i++); /* t[i] = result */
+		}
+	}
 
-    while (_findnext(hFile, &c_file) != -1L)
-    {
-        if (isdotfile(c_file.name))
-            continue;
-        if (asDirEntries)
-        {
-            struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
-            result->name = clone_string(c_file.name); 
-            result->folder = clone_string(path); 
-            result->closed = 0;
-            luaL_getmetatable(L, DIR_ENTRY_METATABLE);
-            lua_setmetatable(L, -2);
-            lua_rawseti(L, resultPosition, i++); /* t[i] = result */
-        }
-        else
-        {
-            lua_pushstring(L, c_file.name);      /* push path */
-            lua_rawseti(L, resultPosition, i++); /* t[i] = result */
-        }
-    }
-    _findclose(hFile);
+	while (_findnext(hFile, &c_file) != -1L) {
+		if (isdotfile(c_file.name))
+			continue;
+		if (asDirEntries) {
+			struct dir_entry_data *result = lua_newuserdata(
+				L, sizeof(struct dir_entry_data));
+			result->name = clone_string(c_file.name);
+			result->folder = clone_string(path);
+			result->closed = 0;
+			luaL_getmetatable(L, DIR_ENTRY_METATABLE);
+			lua_setmetatable(L, -2);
+			lua_rawseti(L, resultPosition, i++); /* t[i] = result */
+		} else {
+			lua_pushstring(L, c_file.name); /* push path */
+			lua_rawseti(L, resultPosition, i++); /* t[i] = result */
+		}
+	}
+	_findclose(hFile);
 #else
-    DIR *dir = opendir(path);
-    if (dir == NULL)
-        return luaL_error(L, "cannot open %s: %s", path, strerror(errno));
+	DIR *dir = opendir(path);
+	if (dir == NULL)
+		return luaL_error(L, "cannot open %s: %s", path,
+				  strerror(errno));
 
-    int i = 1;
-    while ((entry = readdir(dir)) != NULL)
-    {
-        if (isdotfile(entry->d_name))
-            continue;
-        if (asDirEntries)
-        {
-            struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
-            result->name = clone_string(entry->d_name); 
-            result->folder = clone_string(path); 
-            result->closed = 0;
-            luaL_getmetatable(L, DIR_ENTRY_METATABLE);
-            lua_setmetatable(L, -2);
-            lua_rawseti(L, resultPosition, i++); 
-        }
-        else
-        {
-            lua_pushstring(L, entry->d_name);    /* push path */
-            lua_rawseti(L, resultPosition, i++); /* t[i] = result */
-        }
-    }
-    closedir(dir);
+	int i = 1;
+	while ((entry = readdir(dir)) != NULL) {
+		if (isdotfile(entry->d_name))
+			continue;
+		if (asDirEntries) {
+			struct dir_entry_data *result = lua_newuserdata(
+				L, sizeof(struct dir_entry_data));
+			result->name = clone_string(entry->d_name);
+			result->folder = clone_string(path);
+			result->closed = 0;
+			luaL_getmetatable(L, DIR_ENTRY_METATABLE);
+			lua_setmetatable(L, -2);
+			lua_rawseti(L, resultPosition, i++);
+		} else {
+			lua_pushstring(L, entry->d_name); /* push path */
+			lua_rawseti(L, resultPosition, i++); /* t[i] = result */
+		}
+	}
+	closedir(dir);
 #endif
-    return 1;
+	return 1;
 }
 
 /*
@@ -197,101 +188,88 @@ int eli_read_dir(lua_State *L)
 static int dir_iter(lua_State *L)
 {
 #ifdef _WIN32
-    struct _finddata_t c_file;
+	struct _finddata_t c_file;
 #else
-    struct dirent *entry;
+	struct dirent *entry;
 #endif
-    dir_data *d = (dir_data *)luaL_checkudata(L, 1, DIR_METATABLE);
-    luaL_argcheck(L, d->closed == 0, 1, "can not iterate over closed " DIR_METATABLE);
-    const int asDirEntries = d->asDirEntries == -1 ? lua_toboolean(L, 2) : d->asDirEntries;
+	dir_data *d = (dir_data *)luaL_checkudata(L, 1, DIR_METATABLE);
+	luaL_argcheck(L, d->closed == 0, 1,
+		      "can not iterate over closed " DIR_METATABLE);
+	const int asDirEntries = d->asDirEntries == -1 ? lua_toboolean(L, 2) :
+							 d->asDirEntries;
 #ifdef _WIN32
-    if (d->hFile == 0L)
-    { /* first entry */
-        if ((d->hFile = _findfirst(d->pattern, &c_file)) == -1L)
-        {
-            lua_pushnil(L);
-            lua_pushstring(L, strerror(errno));
-            d->closed = 1;
-            return 2;
-        }
-        else if (!isdotfile(c_file.name))
-        {
-            if (asDirEntries)
-            {
-                struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
-                result->name = clone_string(c_file.name); 
-                result->folder = clone_string(d->path); 
-                result->closed = 0;
-                luaL_getmetatable(L, DIR_ENTRY_METATABLE);
-                lua_setmetatable(L, -2);
-            }
-            else
-            {
-                lua_pushstring(L, c_file.name);
-            }
-            return 1;
-        }
-    }
-    // skip dot files
-    long found;
-    while ((found = _findnext(d->hFile, &c_file)) != -1L && isdotfile(c_file.name))
-        continue;
+	if (d->hFile == 0L) { /* first entry */
+		if ((d->hFile = _findfirst(d->pattern, &c_file)) == -1L) {
+			lua_pushnil(L);
+			lua_pushstring(L, strerror(errno));
+			d->closed = 1;
+			return 2;
+		} else if (!isdotfile(c_file.name)) {
+			if (asDirEntries) {
+				struct dir_entry_data *result = lua_newuserdata(
+					L, sizeof(struct dir_entry_data));
+				result->name = clone_string(c_file.name);
+				result->folder = clone_string(d->path);
+				result->closed = 0;
+				luaL_getmetatable(L, DIR_ENTRY_METATABLE);
+				lua_setmetatable(L, -2);
+			} else {
+				lua_pushstring(L, c_file.name);
+			}
+			return 1;
+		}
+	}
+	// skip dot files
+	long found;
+	while ((found = _findnext(d->hFile, &c_file)) != -1L &&
+	       isdotfile(c_file.name))
+		continue;
 
-    /* next entry */
-    if (found == -1L)
-    {
-        /* no more entries => close directory */
-        _findclose(d->hFile);
-        d->closed = 1;
-        return 0;
-    }
-    else
-    {
-        if (asDirEntries)
-        {
-            struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
-            result->name = clone_string(c_file.name); 
-            result->folder = clone_string(d->path); 
-            result->closed = 0;
-            luaL_getmetatable(L, DIR_ENTRY_METATABLE);
-            lua_setmetatable(L, -2);
-        }
-        else
-        {
-            lua_pushstring(L, c_file.name);
-        }
-        return 1;
-    }
+	/* next entry */
+	if (found == -1L) {
+		/* no more entries => close directory */
+		_findclose(d->hFile);
+		d->closed = 1;
+		return 0;
+	} else {
+		if (asDirEntries) {
+			struct dir_entry_data *result = lua_newuserdata(
+				L, sizeof(struct dir_entry_data));
+			result->name = clone_string(c_file.name);
+			result->folder = clone_string(d->path);
+			result->closed = 0;
+			luaL_getmetatable(L, DIR_ENTRY_METATABLE);
+			lua_setmetatable(L, -2);
+		} else {
+			lua_pushstring(L, c_file.name);
+		}
+		return 1;
+	}
 
 #else
-    // skip dot files
-    while ((entry = readdir(d->dir)) != NULL && isdotfile(entry->d_name))
-        continue;
+	// skip dot files
+	while ((entry = readdir(d->dir)) != NULL && isdotfile(entry->d_name))
+		continue;
 
-    if (entry != NULL)
-    {
-        if (asDirEntries)
-        {
-            struct dir_entry_data *result = lua_newuserdata(L, sizeof(struct dir_entry_data));
-            result->name = clone_string(entry->d_name); 
-            result->folder = clone_string(d->path); 
-            result->closed = 0;
-            luaL_getmetatable(L, DIR_ENTRY_METATABLE);
-            lua_setmetatable(L, -2);
-        }
-        else
-        {
-            lua_pushstring(L, entry->d_name);
-        }
-        return 1;
-    }
-    else
-    {
-        /* no more entries => close directory */
-        closedir(d->dir);
-        d->closed = 1;
-        return 0;
-    }
+	if (entry != NULL) {
+		if (asDirEntries) {
+			struct dir_entry_data *result = lua_newuserdata(
+				L, sizeof(struct dir_entry_data));
+			result->name = clone_string(entry->d_name);
+			result->folder = clone_string(d->path);
+			result->closed = 0;
+			luaL_getmetatable(L, DIR_ENTRY_METATABLE);
+			lua_setmetatable(L, -2);
+		} else {
+			lua_pushstring(L, entry->d_name);
+		}
+		return 1;
+	} else {
+		/* no more entries => close directory */
+		closedir(d->dir);
+		d->closed = 1;
+		return 0;
+	}
 #endif
 }
 
@@ -300,56 +278,58 @@ static int dir_iter(lua_State *L)
 */
 int eli_open_dir(lua_State *L)
 {
-    const char *path = luaL_checkstring(L, 1);
-    dir_data *d;
+	const char *path = luaL_checkstring(L, 1);
+	dir_data *d;
 
-    d = (dir_data *)lua_newuserdata(L, sizeof(dir_data));
-    luaL_getmetatable(L, DIR_METATABLE);
-    lua_setmetatable(L, -2);
-    d->closed = 0;
-    d->path = clone_string(path); 
-    d->asDirEntries = -1;
+	d = (dir_data *)lua_newuserdata(L, sizeof(dir_data));
+	luaL_getmetatable(L, DIR_METATABLE);
+	lua_setmetatable(L, -2);
+	d->closed = 0;
+	d->path = clone_string(path);
+	d->asDirEntries = -1;
 #ifdef _WIN32
-    d->hFile = 0L;
-    if (strlen(path) > LMAXPATHLEN - 2)
-        return luaL_error(L, "path too long: %s", path);
-    else
-        sprintf(d->pattern, "%s/*", path);
+	d->hFile = 0L;
+	if (strlen(path) > LMAXPATHLEN - 2)
+		return luaL_error(L, "path too long: %s", path);
+	else
+		sprintf(d->pattern, "%s/*", path);
 #else
-    d->dir = opendir(path);
-    if (d->dir == NULL)
-        return luaL_error(L, "cannot open %s: %s", path, strerror(errno));
+	d->dir = opendir(path);
+	if (d->dir == NULL)
+		return luaL_error(L, "cannot open %s: %s", path,
+				  strerror(errno));
 #endif
-    return 1;
+	return 1;
 }
 
 int eli_iter_dir(lua_State *L)
 {
-    const char *path = luaL_checkstring(L, 1);
-    int asDirEntries = lua_toboolean(L, 2);
-    dir_data *d;
+	const char *path = luaL_checkstring(L, 1);
+	int asDirEntries = lua_toboolean(L, 2);
+	dir_data *d;
 
-    lua_pushcfunction(L, dir_iter);
-    d = (dir_data *)lua_newuserdata(L, sizeof(dir_data));
-    luaL_getmetatable(L, DIR_METATABLE);
-    lua_setmetatable(L, -2);
-    d->closed = 0;
-    d->asDirEntries = asDirEntries;
-    d->path = clone_string(path); 
+	lua_pushcfunction(L, dir_iter);
+	d = (dir_data *)lua_newuserdata(L, sizeof(dir_data));
+	luaL_getmetatable(L, DIR_METATABLE);
+	lua_setmetatable(L, -2);
+	d->closed = 0;
+	d->asDirEntries = asDirEntries;
+	d->path = clone_string(path);
 #ifdef _WIN32
-    d->hFile = 0L;
-    if (strlen(path) > LMAXPATHLEN - 2)
-        return luaL_error(L, "path too long: %s", path);
-    else
-        sprintf(d->pattern, "%s/*", path);
+	d->hFile = 0L;
+	if (strlen(path) > LMAXPATHLEN - 2)
+		return luaL_error(L, "path too long: %s", path);
+	else
+		sprintf(d->pattern, "%s/*", path);
 #else
-    d->dir = opendir(path);
-    if (d->dir == NULL)
-        return luaL_error(L, "cannot open %s: %s", path, strerror(errno));
+	d->dir = opendir(path);
+	if (d->dir == NULL)
+		return luaL_error(L, "cannot open %s: %s", path,
+				  strerror(errno));
 #endif
-    lua_pushnil(L);
-    lua_pushvalue(L, -2);  
-    return 4;
+	lua_pushnil(L);
+	lua_pushvalue(L, -2);
+	return 4;
 }
 
 /*
@@ -357,30 +337,28 @@ int eli_iter_dir(lua_State *L)
 */
 static int lclosedir(lua_State *L)
 {
-    dir_data *d = (dir_data *)luaL_checkudata(L, 1, DIR_METATABLE);
+	dir_data *d = (dir_data *)luaL_checkudata(L, 1, DIR_METATABLE);
 #ifdef _WIN32
-    if (!d->closed && d->hFile)
-    {
-        _findclose(d->hFile);
-        free(d->path);
-    }
+	if (!d->closed && d->hFile) {
+		_findclose(d->hFile);
+		free(d->path);
+	}
 #else
-    if (!d->closed && d->dir)
-    {
-        closedir(d->dir);
-        free(d->path);
-    }
+	if (!d->closed && d->dir) {
+		closedir(d->dir);
+		free(d->path);
+	}
 #endif
-    d->closed = 1;
-    return 0;
+	d->closed = 1;
+	return 0;
 }
 
 static int dir_path(lua_State *L)
 {
-    dir_data *d = (dir_data *)luaL_checkudata(L, 1, DIR_METATABLE);
-    luaL_argcheck(L, d->closed == 0, 1, "closed " DIR_METATABLE);
-    lua_pushstring(L, d->path);
-    return 1;
+	dir_data *d = (dir_data *)luaL_checkudata(L, 1, DIR_METATABLE);
+	luaL_argcheck(L, d->closed == 0, 1, "closed " DIR_METATABLE);
+	lua_pushstring(L, d->path);
+	return 1;
 }
 
 /*
@@ -388,86 +366,89 @@ static int dir_path(lua_State *L)
 */
 int dir_create_meta(lua_State *L)
 {
-    luaL_newmetatable(L, DIR_METATABLE);
+	luaL_newmetatable(L, DIR_METATABLE);
 
-    /* Method table */
-    lua_newtable(L);
-    lua_pushcfunction(L, dir_iter);
-    lua_setfield(L, -2, "next");
-    lua_pushcfunction(L, lclosedir);
-    lua_setfield(L, -2, "close");
-    lua_pushcfunction(L, dir_path);
-    lua_setfield(L, -2, "path");
-    lua_pushstring(L, DIR_METATABLE);
-    lua_setfield(L, -2, "__type");
+	/* Method table */
+	lua_newtable(L);
+	lua_pushcfunction(L, dir_iter);
+	lua_setfield(L, -2, "next");
+	lua_pushcfunction(L, lclosedir);
+	lua_setfield(L, -2, "close");
+	lua_pushcfunction(L, dir_path);
+	lua_setfield(L, -2, "path");
+	lua_pushstring(L, DIR_METATABLE);
+	lua_setfield(L, -2, "__type");
 
-    /* Metamethods */
-    lua_setfield(L, -2, "__index");
-    lua_pushcfunction(L, lclosedir);
-    lua_setfield(L, -2, "__gc");
-    lua_pushcfunction(L, lclosedir);
-    lua_setfield(L, -2, "__close");
-    return 1;
+	/* Metamethods */
+	lua_setfield(L, -2, "__index");
+	lua_pushcfunction(L, lclosedir);
+	lua_setfield(L, -2, "__gc");
+	lua_pushcfunction(L, lclosedir);
+	lua_setfield(L, -2, "__close");
+	return 1;
 }
 
 int dir_entry_type(lua_State *L)
 {
-    struct dir_entry_data *ded = (struct dir_entry_data *)luaL_checkudata(L, 1, DIR_ENTRY_METATABLE);
-    luaL_argcheck(L, ded->closed == 0, 1, "closed " DIR_ENTRY_METATABLE);
-    char *path = joinpath(ded->folder, ded->name);
+	struct dir_entry_data *ded = (struct dir_entry_data *)luaL_checkudata(
+		L, 1, DIR_ENTRY_METATABLE);
+	luaL_argcheck(L, ded->closed == 0, 1, "closed " DIR_ENTRY_METATABLE);
+	char *path = joinpath(ded->folder, ded->name);
 
-    if (!path)
-    {
-        push_error(L, "Out of memory");
-    }
+	if (!path) {
+		push_error(L, "Out of memory");
+	}
 
-    STAT_STRUCT info;
-    if (STAT_FUNC(path, &info))
-    {
-        lua_pushnil(L);
-        lua_pushfstring(L, "cannot obtain information from path '%s': %s", path, strerror(errno));
-        lua_pushinteger(L, errno);
-        return 3;
-    }
-    free(path);
-    lua_pushstring(L, mode2string(info.st_mode));
-    return 1;
+	STAT_STRUCT info;
+	if (STAT_FUNC(path, &info)) {
+		lua_pushnil(L);
+		lua_pushfstring(L,
+				"cannot obtain information from path '%s': %s",
+				path, strerror(errno));
+		lua_pushinteger(L, errno);
+		return 3;
+	}
+	free(path);
+	lua_pushstring(L, mode2string(info.st_mode));
+	return 1;
 }
 
 static int dir_entry_name(lua_State *L)
 {
-    struct dir_entry_data *ded = (struct dir_entry_data *)luaL_checkudata(L, 1, DIR_ENTRY_METATABLE);
-    luaL_argcheck(L, ded->closed == 0, 1, "closed " DIR_ENTRY_METATABLE);
+	struct dir_entry_data *ded = (struct dir_entry_data *)luaL_checkudata(
+		L, 1, DIR_ENTRY_METATABLE);
+	luaL_argcheck(L, ded->closed == 0, 1, "closed " DIR_ENTRY_METATABLE);
 
-    lua_pushstring(L, ded->name);
-    return 1;
+	lua_pushstring(L, ded->name);
+	return 1;
 }
 
 static int dir_entry_fullpath(lua_State *L)
 {
-    struct dir_entry_data *ded = (struct dir_entry_data *)luaL_checkudata(L, 1, DIR_ENTRY_METATABLE);
-    luaL_argcheck(L, ded->closed == 0, 1, "closed " DIR_ENTRY_METATABLE);
+	struct dir_entry_data *ded = (struct dir_entry_data *)luaL_checkudata(
+		L, 1, DIR_ENTRY_METATABLE);
+	luaL_argcheck(L, ded->closed == 0, 1, "closed " DIR_ENTRY_METATABLE);
 
-    char *res = joinpath(ded->folder, ded->name);
-    if (!res)
-    {
-        push_error(L, "Out of memory");
-    }
+	char *res = joinpath(ded->folder, ded->name);
+	if (!res) {
+		push_error(L, "Out of memory");
+	}
 
-    lua_pushstring(L, res);
-    free(res);
-    return 1;
+	lua_pushstring(L, res);
+	free(res);
+	return 1;
 }
 
 static int dir_entry_close(lua_State *L)
 {
-    dir_entry_data *d = (dir_entry_data *)luaL_checkudata(L, 1, DIR_ENTRY_METATABLE);
-    if (!d->closed) {
-        free(d->name);
-        free(d->folder);
-    }
-    d->closed = 1;
-    return 0;
+	dir_entry_data *d =
+		(dir_entry_data *)luaL_checkudata(L, 1, DIR_ENTRY_METATABLE);
+	if (!d->closed) {
+		free(d->name);
+		free(d->folder);
+	}
+	d->closed = 1;
+	return 0;
 }
 
 /*
@@ -475,25 +456,25 @@ static int dir_entry_close(lua_State *L)
 */
 int direntry_create_meta(lua_State *L)
 {
-    luaL_newmetatable(L, DIR_ENTRY_METATABLE);
+	luaL_newmetatable(L, DIR_ENTRY_METATABLE);
 
-    /* Method table */
-    lua_newtable(L);
-    lua_pushcfunction(L, dir_entry_name);
-    lua_setfield(L, -2, "name");
-    lua_pushcfunction(L, dir_entry_type);
-    lua_setfield(L, -2, "type");
-    lua_pushcfunction(L, dir_entry_fullpath);
-    lua_setfield(L, -2, "fullpath");
+	/* Method table */
+	lua_newtable(L);
+	lua_pushcfunction(L, dir_entry_name);
+	lua_setfield(L, -2, "name");
+	lua_pushcfunction(L, dir_entry_type);
+	lua_setfield(L, -2, "type");
+	lua_pushcfunction(L, dir_entry_fullpath);
+	lua_setfield(L, -2, "fullpath");
 
-    lua_pushstring(L, DIR_ENTRY_METATABLE);
-    lua_setfield(L, -2, "__type");
+	lua_pushstring(L, DIR_ENTRY_METATABLE);
+	lua_setfield(L, -2, "__type");
 
-    /* Metamethods */
-    lua_setfield(L, -2, "__index");
-    lua_pushcfunction(L, dir_entry_close);
-    lua_setfield(L, -2, "__gc");
-    lua_pushcfunction(L, dir_entry_close);
-    lua_setfield(L, -2, "__close");
-    return 1;
+	/* Metamethods */
+	lua_setfield(L, -2, "__index");
+	lua_pushcfunction(L, dir_entry_close);
+	lua_setfield(L, -2, "__gc");
+	lua_pushcfunction(L, dir_entry_close);
+	lua_setfield(L, -2, "__close");
+	return 1;
 }
