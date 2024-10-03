@@ -110,7 +110,11 @@ const char *mode2string(mode_t mode)
 #ifdef _WIN32
 const char *perm2string(unsigned short mode)
 {
-	char perms[10] = "---------";
+	char *perms = malloc(10 * sizeof(char));
+	if (!perms) {
+		return NULL;
+	}
+	strcpy(perms, "---------");
 	if (mode & _S_IREAD) {
 		perms[0] = 'r';
 		perms[3] = 'r';
@@ -131,7 +135,11 @@ const char *perm2string(unsigned short mode)
 #else
 const char *perm2string(mode_t mode)
 {
-	char perms[10] = "---------";
+	char *perms = malloc(10 * sizeof(char));
+	if (!perms) {
+		return NULL;
+	}
+	strcpy(perms, "---------");
 	if (mode & S_IRUSR)
 		perms[0] = 'r';
 	if (mode & S_IWUSR)

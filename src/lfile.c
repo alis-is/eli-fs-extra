@@ -121,7 +121,13 @@ static int _push_file_info_member(lua_State *L, STAT_STRUCT *info,
 		lua_pushinteger(L, (lua_Integer)info->st_size);
 		return 1;
 	case 11:
-		lua_pushstring(L, perm2string(info->st_mode));
+		const char *perms = perm2string(info->st_mode);
+		if (!perms) {
+			lua_pushnil(L);
+			return 1;
+		}
+		lua_pushstring(L, perms);
+		free((void *)perms);
 		return 1;
 #ifndef _WIN32
 	case 12:
