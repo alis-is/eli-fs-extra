@@ -156,8 +156,8 @@ int eli_read_dir(lua_State *L)
 #else
 	DIR *dir = opendir(path);
 	if (dir == NULL)
-		return luaL_error(L, "cannot open %s: %s", path,
-				  strerror(errno));
+		return push_error(L, sprintf("cannot open %s: %s", path,
+					     strerror(errno)));
 
 	int i = 1;
 	while ((entry = readdir(dir)) != NULL) {
@@ -297,8 +297,8 @@ int eli_open_dir(lua_State *L)
 #else
 	d->dir = opendir(path);
 	if (d->dir == NULL)
-		return luaL_error(L, "cannot open %s: %s", path,
-				  strerror(errno));
+		return push_error(L, sprintf("cannot open %s: %s", path,
+					     strerror(errno)));
 #endif
 	return 1;
 }
@@ -325,8 +325,8 @@ int eli_iter_dir(lua_State *L)
 #else
 	d->dir = opendir(path);
 	if (d->dir == NULL)
-		return luaL_error(L, "cannot open %s: %s", path,
-				  strerror(errno));
+		return push_error(L, sprintf("cannot open %s: %s", path,
+					     strerror(errno)));
 #endif
 	lua_pushnil(L);
 	lua_pushvalue(L, -2);

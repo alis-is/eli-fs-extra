@@ -116,7 +116,7 @@ int eli_file_lock(lua_State *L)
 	}
 	default: {
 		luaL_error(L,
-			   "lock: Invalid type (%s) string or FILE* expected.",
+			   "lock: invalid type (%s) string or FILE* expected.",
 			   argt);
 		return 0;
 	}
