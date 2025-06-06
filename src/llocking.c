@@ -218,7 +218,8 @@ int eli_unlock_dir(lua_State *L)
 		CloseHandle(lock->fd);
 		lock->fd = INVALID_HANDLE_VALUE;
 	}
-	return 0;
+	lua_pushboolean(L, 1);
+	return 1;
 }
 
 int eli_is_dir_lock_active(lua_State *L)
