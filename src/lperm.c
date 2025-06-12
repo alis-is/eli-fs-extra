@@ -113,7 +113,7 @@ int eli_getgid(lua_State *L)
 {
 #ifdef _WIN32
 	errno = ENOSYS; /* = "Function not implemented" */
-	return push_result(L, -1, "getuid is not supported on Windows");
+	return push_result(L, -1, "getgid is not supported on Windows");
 #else
 	const char *group = luaL_checkstring(L, 1);
 	struct group *g;
