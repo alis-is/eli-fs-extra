@@ -20,6 +20,7 @@
 
 #include <unistd.h>
 #include <pwd.h>
+#include <grp.h>
 
 #define LMODE_T mode_t
 
@@ -104,6 +105,22 @@ int eli_getuid(lua_State *L)
 		return push_error(L, NULL);
 	}
 	lua_pushinteger(L, p->pw_uid);
+	return 1;
+#endif
+}
+
+int eli_getgid(lua_State *L)
+{
+#ifdef _WIN32
+	errno = ENOSYS; /* = "Function not implemented" */
+	return push_result(L, -1, "getuid is not supported on Windows");
+#else
+	const char *group = luaL_checkstring(L, 1);
+	struct group *g;
+	if ((g = getgrnam(group)) == NULL) {
+		return push_error(L, NULL);
+	}
+	lua_pushinteger(L, g->gr_gid);
 	return 1;
 #endif
 }

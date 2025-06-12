@@ -6,5 +6,6 @@
 int eli_chmod(lua_State *L);
 int eli_chown(lua_State *L);
 int eli_getuid(lua_State *L);
+int eli_getgid(lua_State *L);
 
 #endif /* ELI_EXTRA_FS_PERM_H__ */
